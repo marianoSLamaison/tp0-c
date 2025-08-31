@@ -5,7 +5,7 @@ t_log* logger;
 int iniciar_servidor(void)
 {
 	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
+	//assert(!"no implementado!");
 
 	int socket_servidor;
 
@@ -15,13 +15,35 @@ int iniciar_servidor(void)
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
-
-	getaddrinfo(NULL, PUERTO, &hints, &servinfo);
+	//El primer daot es el nombre de dominio o simplemente
+	//la IP, mism caso en el puerto, es o un puerto dado
+	//como string o el nombre de un servicio en cuyo caso segun wikipedia 
+	//esta cosa buscara en algun archivo del sistema para ver como resolver ese asunto
+	//hints es que tipo de servicio queremos. En este caso
+	//es un socket que recibe streams de data, que es pasivo
+	//y que usa el protocolo IP4
+	//el ultimo valor es el servidor respuesta que tiene los datos
+	//que solicitamos mas la data que necesite para funcionar
+	//la funcion retorna algo que no sea 0 si dio un fallo
+	int fallo = getaddrinfo(NULL, PUERTO, &hints, &servinfo);
+	if (fallo)
+		log_error(logger, "No pudimos registrar el servicio");
 
 	// Creamos el socket de escucha del servidor
-
+	// Esta funcion crea un socket con los datos de coneccion
+	// solicitados
+	socket_servidor = socket(servinfo->ai_family,
+				servinfo->ai_socktype,
+				servinfo->ai_protocol);
 	// Asociamos el socket a un puerto
-
+	//Hace que el socket pase a etar operacional
+	//se usa reuseport para poder conectar y reconectar facil
+	setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEPORT, &(int){1}, sizeof(int));
+	//bind es para reclamar el puerto asignado como propio
+	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
+	//listen deja al servidor esperando por conecciones 
+	//con somaxcon para que pueda recibir tantas como pueda
+	listen(socket_servidor, SOMAXCONN);
 	// Escuchamos las conexiones entrantes
 
 	freeaddrinfo(servinfo);
@@ -33,11 +55,13 @@ int iniciar_servidor(void)
 int esperar_cliente(int socket_servidor)
 {
 	// Quitar esta línea cuando hayamos terminado de implementar la funcion
-	assert(!"no implementado!");
+	//assert(!"no implementado!");
 
 	// Aceptamos un nuevo cliente
-	int socket_cliente;
+	int socket_cliente = accept(socket_servidor, NULL, NULL);
+
 	log_info(logger, "Se conecto un cliente!");
+	log_info(logger, "Socket cliente = <%d>", socket_cliente);
 
 	return socket_cliente;
 }
